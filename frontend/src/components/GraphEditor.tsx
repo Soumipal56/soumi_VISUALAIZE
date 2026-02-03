@@ -21,9 +21,12 @@ import HolographicScene from './HolographicScene';
 
 interface EditorProps { onBack: () => void; }
 
+// --- 🔧 CONFIGURATION: SINGLE SOURCE OF TRUTH ---
+// This ensures we ALWAYS talk to Render, avoiding localhost confusion.
+const BACKEND_URL = "https://visualaize-backend.onrender.com"; 
+
 // --- FIXED CSS FOR GLASS BUTTONS ---
 const glassControlsStyle = `
-  /* Force Glass Effect on the Container */
   .react-flow__panel .react-flow__controls {
     background: rgba(15, 23, 42, 0.6) !important;
     border: 1px solid rgba(255, 255, 255, 0.1) !important;
@@ -31,8 +34,6 @@ const glassControlsStyle = `
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5) !important;
     overflow: hidden !important;
   }
-  
-  /* Force Transparent Buttons */
   .react-flow__controls-button {
     background: transparent !important;
     border: none !important;
@@ -44,22 +45,17 @@ const glassControlsStyle = `
     justify-content: center !important;
     transition: background 0.2s ease !important;
   }
-  
   .react-flow__controls-button:last-child {
     border-bottom: none !important;
   }
-
   .react-flow__controls-button:hover {
     background: rgba(255, 255, 255, 0.2) !important;
   }
-
-  /* Force SVG Color */
   .react-flow__controls-button svg {
     fill: rgba(255, 255, 255, 0.8) !important;
     max-width: 14px !important;
     max-height: 14px !important;
   }
-  
   .react-flow__controls-button:hover svg {
     fill: #3b82f6 !important;
   }
@@ -169,12 +165,24 @@ function EditorContent({ onBack }: EditorProps) {
     setChatHistory([]);
     setIsSidebarOpen(false);
 
+    console.log("🚀 [FRONTEND] Connecting to Backend at:", BACKEND_URL);
+
     try {
-      const res = await fetch('https://visualaize-backend.onrender.com/generate', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt: text }),
+      const res = await fetch(`${BACKEND_URL}/generate`, {
+        method: 'POST', 
+        headers: { 'Content-Type': 'application/json' }, 
+        body: JSON.stringify({ prompt: text }),
       });
-      if (!res.ok) throw new Error("Backend Error");
+      
+      if (!res.ok) {
+        const errText = await res.text();
+        console.error("❌ [BACKEND ERROR]:", res.status, errText);
+        throw new Error(`Server Error (${res.status}): ${errText}`);
+      }
+      
       const data = await res.json();
+      console.log("✅ [SUCCESS] Data received:", data);
+      
       setGraphData(data);
       
       const rawNodes: Node[] = data.nodes.map((n: any) => ({
@@ -193,7 +201,8 @@ function EditorContent({ onBack }: EditorProps) {
       setIsSidebarOpen(true); 
 
     } catch (err) {
-      alert("System Busy. Try again.");
+      console.error("🚨 [CRITICAL ERROR]:", err);
+      alert(`System Busy. Please check the console for the exact error.\n\nDetails: ${err}`);
     } finally {
       setLoading(false);
     }
@@ -204,7 +213,7 @@ function EditorContent({ onBack }: EditorProps) {
     setCodeLanguage(newLang);
     setIsRegeneratingCode(true);
     try {
-      const res = await fetch('https://visualaize-backend.onrender.com/regenerate_code', {
+      const res = await fetch(`${BACKEND_URL}/regenerate_code`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt: prompt, language: newLang }),
       });
       const data = await res.json();
@@ -220,7 +229,7 @@ function EditorContent({ onBack }: EditorProps) {
     setChatHistory(prev => [...prev, { role: 'user', text: userMsg }]);
     setIsChatting(true);
     try {
-        const res = await fetch('https://visualaize-backend.onrender.com/chat', {
+        const res = await fetch(`${BACKEND_URL}/chat`, {
             method: 'POST', headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ message: userMsg, context: `Title: ${graphData.title}. Explanation: ${graphData.explanation}` }),
         });
@@ -333,7 +342,7 @@ function EditorContent({ onBack }: EditorProps) {
                 </button>
 
                 <button type="button" onClick={startListening} className={`p-2 rounded-full transition-all ${isListening ? 'bg-red-500 text-white animate-pulse' : 'text-slate-400 hover:text-white hover:bg-white/10'}`}>
-                   <Mic size={18} />
+                    <Mic size={18} />
                 </button>
 
                 <button type="submit" disabled={loading} className="px-6 py-2 rounded-full bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs tracking-widest transition-all shadow-lg shadow-blue-500/20">
