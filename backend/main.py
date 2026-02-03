@@ -6,10 +6,10 @@ from fastapi.middleware.cors import CORSMiddleware
 import google.generativeai as genai
 from dotenv import load_dotenv
 
-# 1. Load variables (but don't crash if missing)
+# 1. Load variables (HARDCODED FOR TESTING)
 load_dotenv()
-GENAI_KEY = os.getenv("GEMINI_API_KEY")
-
+# PASTE YOUR REAL KEY INSIDE THE QUOTES BELOW:
+GENAI_KEY = "AIzaSyAmkZtyGedUVbWbbM40ZOSAarneKnX-pgE"
 # 2. Print status to logs (Helpful for debugging)
 if not GENAI_KEY:
     print("⚠️ WARNING: GEMINI_API_KEY not found in environment variables.")
@@ -48,8 +48,10 @@ def health_check():
 async def generate_graph(request: GraphRequest):
     # We configure the AI here, just in case the key was added late
     current_key = os.getenv("GEMINI_API_KEY")
+   # Use the global hardcoded key
+    current_key = GENAI_KEY 
     if not current_key:
-        raise HTTPException(status_code=500, detail="Server Error: API Key missing on Render.")
+        raise HTTPException(status_code=500, detail="Server Error: Key is empty.")
     
     genai.configure(api_key=current_key)
     
