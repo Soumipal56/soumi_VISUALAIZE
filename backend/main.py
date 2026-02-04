@@ -1,30 +1,50 @@
 import os
 import json
+import sys
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
 import google.generativeai as genai
 from dotenv import load_dotenv
 
-# 1. Load variables
 load_dotenv()
 
-# --- CONFIGURATION: 2026 MODEL LIST ---
-# Gemini 1.5 is deprecated. We use 2.5 and 2.0 now.
-MODEL_PRIORITY_LIST = [
-    'gemini-2.0-flash-exp',   # Often the most accessible experimental model
-    'gemini-2.0-flash',       # Stable 2.0
-    'gemini-1.5-flash'        # Fallback (Just in case it is still active for your specific key)
-]
-
-# --- SECURITY CHECK ---
+# --- 1. SETUP API KEY ---
 GENAI_KEY = os.getenv("GEMINI_API_KEY")
-
 if not GENAI_KEY:
-    print("⚠️ CRITICAL WARNING: GEMINI_API_KEY is missing in Render Environment!")
+    print("⚠️ CRITICAL: GEMINI_API_KEY is missing!")
+    # Use a dummy key to prevent startup crash, but AI will fail later
+    genai.configure(api_key="missing")
 else:
-    print(f"✅ Secure API Key Loaded: {GENAI_KEY[:5]}... (Valid)")
     genai.configure(api_key=GENAI_KEY)
+
+# --- 2. SELF-HEALING MODEL SELECTOR ---
+# This function asks Google what models are actually valid right now.
+def get_valid_models():
+    valid_models = []
+    try:
+        print("🔍 Scanning for available AI models...")
+        for m in genai.list_models():
+            if 'generateContent' in m.supported_generation_methods:
+                valid_models.append(m.name)
+    except Exception as e:
+        print(f"⚠️ Could not list models: {e}")
+        return []
+    
+    # Sort them to prefer newer '2.0' or '2.5' models
+    # This puts the best models at the front of the list
+    valid_models.sort(key=lambda x: 'flash' in x, reverse=True)
+    valid_models.sort(key=lambda x: '2.' in x, reverse=True)
+    
+    return valid_models
+
+# Run the scan once at startup
+AVAILABLE_MODELS = get_valid_models()
+print(f"✅ AUTO-DETECTED MODELS: {AVAILABLE_MODELS}")
+
+# If scan failed, force these defaults as a Hail Mary
+if not AVAILABLE_MODELS:
+    AVAILABLE_MODELS = ["models/gemini-2.0-flash", "models/gemini-1.5-flash"]
 
 app = FastAPI()
 
@@ -42,19 +62,21 @@ class GraphRequest(BaseModel):
 class ChatRequest(BaseModel):
     message: str
     context: str
-    
+
 class CodeRequest(BaseModel):
     prompt: str
     language: str
 
-# --- HELPER FUNCTION: AUTOMATIC SWITCHING ---
-def get_model_response(prompt_text, use_json=False):
+def get_smart_response(prompt_text, use_json=False):
     last_error = None
     
-    for model_name in MODEL_PRIORITY_LIST:
+    # Loop through the models we FOUND (not guessed)
+    for model_name in AVAILABLE_MODELS:
         try:
-            print(f"🔄 Attempting generation with: {model_name}...")
-            model = genai.GenerativeModel(model_name)
+            print(f"🔄 Trying model: {model_name}...")
+            # Handle 'models/' prefix if present
+            clean_name = model_name if "models/" in model_name else f"models/{model_name}"
+            model = genai.GenerativeModel(clean_name)
             
             config = {"response_mime_type": "application/json"} if use_json else {}
             
@@ -63,26 +85,25 @@ def get_model_response(prompt_text, use_json=False):
                 generation_config=config
             )
             
-            print(f"✅ Success with {model_name}!")
-            return response.text 
+            print(f"✅ SUCCESS with {clean_name}!")
+            return response.text
             
         except Exception as e:
-            # Catch 404 (Deprecated) or 429 (Quota)
-            print(f"⚠️ Model {model_name} failed. Error: {e}")
+            print(f"⚠️ {model_name} failed. Error: {e}")
             last_error = e
-            continue 
+            continue
             
-    raise Exception(f"All AI models failed. Please check your API Key. Last error: {last_error}")
+    raise HTTPException(status_code=500, detail=f"All models failed. Last error: {last_error}")
 
 @app.get("/")
 def health_check():
-    return {"status": "Online", "key_loaded": bool(GENAI_KEY), "models": MODEL_PRIORITY_LIST}
+    return {"status": "Online", "models": AVAILABLE_MODELS}
 
 @app.post("/generate")
 async def generate_graph(request: GraphRequest):
     if not GENAI_KEY:
-        raise HTTPException(status_code=500, detail="Server Error: API Key missing on Render.")
-    
+        raise HTTPException(status_code=500, detail="API Key missing on Render.")
+
     system_prompt = """
     You are a System Visualization AI. 
     Generate a JSON object for a node-based graph editor (ReactFlow).
@@ -97,18 +118,17 @@ async def generate_graph(request: GraphRequest):
       "edges": [{"source": "1", "target": "2", "label": "next"}]
     }
     """
-    
     try:
-        response_text = get_model_response(f"{system_prompt}\n\nUSER PROMPT: {request.prompt}", use_json=True)
+        response_text = get_smart_response(f"{system_prompt}\n\nUSER PROMPT: {request.prompt}", use_json=True)
         return json.loads(response_text)
     except Exception as e:
-        print(f"AI Error: {e}")
+        print(f"Error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/chat")
 async def chat_with_ai(request: ChatRequest):
     try:
-        response_text = get_model_response(f"Context: {request.context}\nUser: {request.message}", use_json=False)
+        response_text = get_smart_response(f"Context: {request.context}\nUser: {request.message}", use_json=False)
         return {"reply": response_text}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -116,10 +136,7 @@ async def chat_with_ai(request: ChatRequest):
 @app.post("/regenerate_code")
 async def regenerate_code(request: CodeRequest):
     try:
-        response_text = get_model_response(
-             f"Convert: {request.prompt} to {request.language}. Return ONLY code.", 
-             use_json=False
-        )
+        response_text = get_smart_response(f"Convert: {request.prompt} to {request.language}. Return ONLY code.", use_json=False)
         return {"code_snippet": response_text.replace("```",""), "code_explanation": f"Converted to {request.language}"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
