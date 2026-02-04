@@ -6,10 +6,18 @@ from fastapi.middleware.cors import CORSMiddleware
 import google.generativeai as genai
 from dotenv import load_dotenv
 
-# 1. Load variables (HARDCODED FOR TESTING)
+# 1. Load variables
 load_dotenv()
 
-# --- SECURITY FIX: Use Environment Variable Only ---
+# --- CONFIGURATION: FALLBACK MODELS ---
+# The system will try these in order. If #1 fails (Quota/Error), it tries #2, etc.
+MODEL_PRIORITY_LIST = [
+    'gemini-2.0-flash',  # 1st Choice: Newest & Fastest
+    'gemini-1.5-flash',  # 2nd Choice: High Rate Limits (Reliable Backup)
+    'gemini-1.5-pro'     # 3rd Choice: Smartest Backup
+]
+
+# --- SECURITY CHECK ---
 GENAI_KEY = os.getenv("GEMINI_API_KEY")
 
 if not GENAI_KEY:
@@ -17,8 +25,6 @@ if not GENAI_KEY:
 else:
     print(f"✅ Secure API Key Loaded: {GENAI_KEY[:5]}... (Valid)")
     genai.configure(api_key=GENAI_KEY)
-
-MODEL_NAME = 'gemini-2.0-flash'
 
 app = FastAPI()
 
@@ -42,52 +48,74 @@ class CodeRequest(BaseModel):
     prompt: str
     language: str
 
+# --- HELPER FUNCTION: AUTOMATIC SWITCHING ---
+def get_model_response(prompt_text, use_json=False):
+    """
+    Tries to get a response from the best available model.
+    If one fails (429 Quota), it automatically tries the next one.
+    """
+    last_error = None
+    
+    # Loop through our list of models
+    for model_name in MODEL_PRIORITY_LIST:
+        try:
+            print(f"🔄 Attempting generation with: {model_name}...")
+            model = genai.GenerativeModel(model_name)
+            
+            config = {"response_mime_type": "application/json"} if use_json else {}
+            
+            response = model.generate_content(
+                prompt_text,
+                generation_config=config
+            )
+            
+            print(f"✅ Success with {model_name}!")
+            return response.text  # If successful, return data immediately
+            
+        except Exception as e:
+            print(f"⚠️ Model {model_name} failed. Error: {e}")
+            last_error = e
+            continue  # Automatically try the next model
+            
+    # If the loop finishes and nothing worked:
+    raise Exception(f"All AI models failed. Last error: {last_error}")
+
 @app.get("/")
 def health_check():
     # This simple route allows Render to see the app is "alive"
-    return {"status": "Online", "key_loaded": bool(GENAI_KEY)}
+    return {"status": "Online", "key_loaded": bool(GENAI_KEY), "models": MODEL_PRIORITY_LIST}
 
 @app.post("/generate")
 async def generate_graph(request: GraphRequest):
-    # We configure the AI here, just in case the key was added late
-    current_key = os.getenv("GEMINI_API_KEY")
-   # Use the global hardcoded key
-    current_key = GENAI_KEY 
-    if not current_key:
-        raise HTTPException(status_code=500, detail="Server Error: Key is empty.")
+    # Ensure key is loaded
+    if not GENAI_KEY:
+        raise HTTPException(status_code=500, detail="Server Error: API Key missing on Render.")
     
-    genai.configure(api_key=current_key)
+    system_prompt = """
+    You are a System Visualization AI. 
+    Generate a JSON object for a node-based graph editor (ReactFlow).
+    
+    Strict JSON Schema:
+    {
+      "title": "Short Title",
+      "summary": "1 sentence summary",
+      "explanation": "Brief explanation",
+      "execution_trace": "Step-by-step logic trace",
+      "code_snippet": "Python code representation",
+      "nodes": [
+          {"id": "1", "label": "Start"},
+          {"id": "2", "label": "Process"}
+      ],
+      "edges": [
+          {"source": "1", "target": "2", "label": "next"}
+      ]
+    }
+    """
     
     try:
-        model = genai.GenerativeModel('gemini-2.0-flash')
-        
-        system_prompt = """
-        You are a System Visualization AI. 
-        Generate a JSON object for a node-based graph editor (ReactFlow).
-        
-        Strict JSON Schema:
-        {
-          "title": "Short Title",
-          "summary": "1 sentence summary",
-          "explanation": "Brief explanation",
-          "execution_trace": "Step-by-step logic trace",
-          "code_snippet": "Python code representation",
-          "nodes": [
-             {"id": "1", "label": "Start"},
-             {"id": "2", "label": "Process"}
-          ],
-          "edges": [
-             {"source": "1", "target": "2", "label": "next"}
-          ]
-        }
-        """
-        
-        response = model.generate_content(
-            f"{system_prompt}\n\nUSER PROMPT: {request.prompt}",
-            generation_config={"response_mime_type": "application/json"}
-        )
-        
-        return json.loads(response.text)
+        # Use the Smart Switcher instead of a hardcoded model
+        response_text = get_model_response(f"{system_prompt}\n\nUSER PROMPT: {request.prompt}", use_json=True)
+        return json.loads(response_text)
 
     except Exception as e:
         print(f"AI Error: {e}")
@@ -95,27 +123,25 @@ async def generate_graph(request: GraphRequest):
 
 @app.post("/chat")
 async def chat_with_ai(request: ChatRequest):
-    current_key = os.getenv("GEMINI_API_KEY")
-    if not current_key:
+    if not GENAI_KEY:
         raise HTTPException(status_code=500, detail="API Key missing.")
     
-    genai.configure(api_key=current_key)
     try:
-        model = genai.GenerativeModel('gemini-2.0-flash')
-        response = model.generate_content(f"Context: {request.context}\nUser: {request.message}")
-        return {"reply": response.text}
+        response_text = get_model_response(f"Context: {request.context}\nUser: {request.message}", use_json=False)
+        return {"reply": response_text}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/regenerate_code")
 async def regenerate_code(request: CodeRequest):
-    current_key = os.getenv("GEMINI_API_KEY")
-    genai.configure(api_key=current_key)
+    if not GENAI_KEY:
+        raise HTTPException(status_code=500, detail="API Key missing.")
+        
     try:
-        model = genai.GenerativeModel('gemini-2.0-flash')
-        response = model.generate_content(
-             f"Convert this system: {request.prompt} to {request.language} code. Return ONLY code."
+        response_text = get_model_response(
+             f"Convert this system: {request.prompt} to {request.language} code. Return ONLY code.", 
+             use_json=False
         )
-        return {"code_snippet": response.text.replace("```",""), "code_explanation": f"Converted to {request.language}"}
+        return {"code_snippet": response_text.replace("```",""), "code_explanation": f"Converted to {request.language}"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
