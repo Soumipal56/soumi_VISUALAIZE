@@ -8,14 +8,17 @@ from dotenv import load_dotenv
 
 # 1. Load variables (HARDCODED FOR TESTING)
 load_dotenv()
-# PASTE YOUR REAL KEY INSIDE THE QUOTES BELOW:
-GENAI_KEY = "AIzaSyAmkZtyGedUVbWbbM40ZOSAarneKnX-pgE"
-# 2. Print status to logs (Helpful for debugging)
+
+# --- SECURITY FIX: Use Environment Variable Only ---
+GENAI_KEY = os.getenv("GEMINI_API_KEY")
+
 if not GENAI_KEY:
-    print("⚠️ WARNING: GEMINI_API_KEY not found in environment variables.")
-    print("   AI features will not work until this is fixed on the Render Dashboard.")
+    print("⚠️ CRITICAL WARNING: GEMINI_API_KEY is missing in Render Environment!")
 else:
-    print(f"✅ API Key loaded successfully: {GENAI_KEY[:5]}...")
+    print(f"✅ Secure API Key Loaded: {GENAI_KEY[:5]}... (Valid)")
+    genai.configure(api_key=GENAI_KEY)
+
+MODEL_NAME = 'gemini-2.0-flash'
 
 app = FastAPI()
 
