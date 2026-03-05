@@ -1,13 +1,13 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useRef } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { Sphere, MeshDistortMaterial, Stars, Float } from '@react-three/drei';
 import * as THREE from 'three';
 
 // The Floating Liquid Core
 function LiquidCore({ isZooming }: { isZooming: boolean }) {
-  const meshRef = useRef<any>(null);
+  const meshRef = useRef<THREE.Mesh>(null);
   
   useFrame((state) => {
     if (!meshRef.current) return;
@@ -52,7 +52,7 @@ function LiquidCore({ isZooming }: { isZooming: boolean }) {
 
 // Background Particles
 function BackgroundStars({ isZooming }: { isZooming: boolean }) {
-  const starsRef = useRef<any>(null);
+  const starsRef = useRef<THREE.Group>(null);
 
   useFrame(() => {
     if (starsRef.current && isZooming) {
