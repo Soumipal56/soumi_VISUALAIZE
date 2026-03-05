@@ -29,7 +29,7 @@ interface GraphData {
   execution_trace: string;
   example_input?: string;
   code_snippet: string;
-  code_explanation: string;
+  code_explanation?: string;
   nodes: { id: string; label: string }[];
   edges: { source: string; target: string; label: string }[];
 }
