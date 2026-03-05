@@ -94,7 +94,7 @@ export default function AboutPage() {
               <ScrollReveal>
                 <h2 className="text-5xl font-bold text-white mb-6">Built for <span className="text-blue-500">Builders.</span></h2>
                 <p className="text-lg text-slate-400 mb-8 leading-relaxed">
-                  Whether you are a student learning automata theory or an architect designing cloud infrastructure, VisualAIze eliminates the friction between "Thinking" and "Seeing".
+                  Whether you are a student learning automata theory or an architect designing cloud infrastructure, VisualAIze eliminates the friction between &quot;Thinking&quot; and &quot;Seeing&quot;.
                 </p>
                 <ul className="space-y-4 mb-8">
                   {['Instant Visualization', 'Export to High-Res PNG', 'Dark Mode Optimized', 'Real-time Latency < 50ms'].map((item, i) => (

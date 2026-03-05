@@ -3,10 +3,11 @@
 import { useRef } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { Sphere, MeshDistortMaterial, Html, Torus } from '@react-three/drei';
+import * as THREE from 'three';
 
 function ProcessingUnit() {
-  const sphereRef = useRef<any>(null);
-  const ringRef = useRef<any>(null);
+  const sphereRef = useRef<THREE.Mesh>(null);
+  const ringRef = useRef<THREE.Mesh>(null);
 
   useFrame((state) => {
     const t = state.clock.getElapsedTime();

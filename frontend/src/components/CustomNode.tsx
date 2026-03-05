@@ -2,7 +2,12 @@ import React, { memo } from 'react';
 import { Handle, Position } from 'reactflow';
 import { Cpu, Database, Activity, ArrowRightCircle } from 'lucide-react';
 
-const CustomNode = ({ data, selected }: any) => {
+interface CustomNodeProps {
+  data: { label: string };
+  selected?: boolean;
+}
+
+const CustomNode = ({ data, selected }: CustomNodeProps) => {
   // 1. Auto-detect the icon based on the text label
   let Icon = Activity;
   let glowColor = "shadow-blue-500/50";

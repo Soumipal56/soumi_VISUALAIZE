@@ -3,7 +3,7 @@
 
 import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import ReactFlow, { 
-  Background, Controls, MiniMap, applyEdgeChanges, applyNodeChanges, 
+  Background, BackgroundVariant, Controls, MiniMap, applyEdgeChanges, applyNodeChanges, 
   Node, Edge, OnNodesChange, OnEdgesChange, MarkerType, useReactFlow, ReactFlowProvider
 } from 'reactflow';
 import 'reactflow/dist/style.css';
@@ -20,6 +20,37 @@ import LoadingCore from './LoadingCore';
 import HolographicScene from './HolographicScene';
 
 interface EditorProps { onBack: () => void; }
+
+// --- Graph data shape returned by the backend ---
+interface GraphData {
+  title: string;
+  summary: string;
+  explanation: string;
+  execution_trace: string;
+  example_input?: string;
+  code_snippet: string;
+  code_explanation?: string;
+  nodes: { id: string; label: string }[];
+  edges: { source: string; target: string; label: string }[];
+}
+
+// --- SpeechRecognition type shim (not in lib.dom.d.ts) ---
+interface SpeechRecognitionEvent extends Event {
+  results: SpeechRecognitionResultList;
+}
+
+interface WebkitSpeechRecognition extends EventTarget {
+  continuous: boolean;
+  lang: string;
+  start(): void;
+  onresult: ((event: SpeechRecognitionEvent) => void) | null;
+  onerror: (() => void) | null;
+  onend: (() => void) | null;
+}
+
+interface WindowWithSpeech extends Window {
+  webkitSpeechRecognition: new () => WebkitSpeechRecognition;
+}
 
 // --- 🔧 CONFIGURATION: SINGLE SOURCE OF TRUTH ---
 // This ensures we ALWAYS talk to Render, avoiding localhost confusion.
@@ -135,7 +166,7 @@ function EditorContent({ onBack }: EditorProps) {
   const [edges, setEdges] = useState<Edge[]>([]);
   const [prompt, setPrompt] = useState('');
   const [loading, setLoading] = useState(false);
-  const [graphData, setGraphData] = useState<any>(null);
+  const [graphData, setGraphData] = useState<GraphData | null>(null);
   const [activeTab, setActiveTab] = useState<'ANALYSIS' | 'CODE' | 'CHAT'>('ANALYSIS');
   const [copied, setCopied] = useState(false);
   const [isListening, setIsListening] = useState(false);
@@ -185,11 +216,11 @@ function EditorContent({ onBack }: EditorProps) {
       
       setGraphData(data);
       
-      const rawNodes: Node[] = data.nodes.map((n: any) => ({
+      const rawNodes: Node[] = data.nodes.map((n: { id: string; label: string }) => ({
         id: n.id, type: 'default', data: { label: n.label }, position: { x: 0, y: 0 },
         style: { background: 'transparent', border: 'none', boxShadow: 'none', width: 'auto' },
       }));
-      const rawEdges: Edge[] = data.edges.map((e: any, i: number) => ({
+      const rawEdges: Edge[] = data.edges.map((e: { source: string; target: string; label: string }, i: number) => ({
         id: `e-${i}`, source: e.source, target: e.target, label: e.label, type: 'bezier', animated: true,
         markerEnd: { type: MarkerType.ArrowClosed, color: '#60a5fa' },
         style: { stroke: '#3b82f6', strokeWidth: 2, filter: 'drop-shadow(0 0 3px #3b82f6)' },
@@ -217,7 +248,7 @@ function EditorContent({ onBack }: EditorProps) {
         method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt: prompt, language: newLang }),
       });
       const data = await res.json();
-      setGraphData((prev: any) => ({ ...prev, code_snippet: data.code_snippet, code_explanation: data.code_explanation }));
+      setGraphData((prev: GraphData | null) => prev ? ({ ...prev, code_snippet: data.code_snippet, code_explanation: data.code_explanation }) : prev);
     } catch (err) { alert("Failed to rewrite code."); } finally { setIsRegeneratingCode(false); }
   };
 
@@ -253,9 +284,9 @@ function EditorContent({ onBack }: EditorProps) {
 
   const startListening = () => {
     if ('webkitSpeechRecognition' in window) {
-      const recognition = new (window as any).webkitSpeechRecognition();
+      const recognition = new (window as WindowWithSpeech).webkitSpeechRecognition();
       recognition.continuous = false; recognition.lang = 'en-US'; setIsListening(true);
-      recognition.onresult = (event: any) => {
+      recognition.onresult = (event: SpeechRecognitionEvent) => {
         const transcript = event.results[0][0].transcript;
         setPrompt(transcript); generateGraph(transcript); setIsListening(false);
       };
@@ -324,7 +355,7 @@ function EditorContent({ onBack }: EditorProps) {
         {/* MAIN GRAPH AREA */}
         <div className="flex-1 w-full h-full">
             <ReactFlow nodes={nodes} edges={edges} nodeTypes={nodeTypes} onNodesChange={onNodesChange} onEdgesChange={onEdgesChange} fitView minZoom={0.1}>
-                <Background color="#94a3b8" gap={40} size={1} variant={("dots" as any)} className="opacity-[0.1]" />
+                <Background color="#94a3b8" gap={40} size={1} variant={BackgroundVariant.Dots} className="opacity-[0.1]" />
                 <Controls /> 
                 <MiniMap className="!bg-slate-900/80 !backdrop-blur-md !border-slate-800 rounded-lg" nodeColor="#3b82f6" maskColor="rgba(15, 23, 42, 0.6)" />
             </ReactFlow>
