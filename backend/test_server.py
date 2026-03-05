@@ -13,59 +13,19 @@ real GEMINI_API_KEY in a controlled environment.
 """
 
 import pytest
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
 from fastapi.testclient import TestClient
-from pydantic import BaseModel
+
+# Import the real application so tests validate actual routes and models.
+# External calls (e.g., to Gemini) should be mocked/monkeypatched in tests.
+from backend.main import app as test_app
 
 # ---------------------------------------------------------------------------
-# Minimal test app — mirrors the real app's structure but with stub handlers
+# NOTE:
+# These tests now exercise the production FastAPI app from backend.main.
+# To keep CI isolated from external services, individual tests should
+# monkeypatch any Gemini-related calls (for example, get_smart_response or
+# genai.list_models) rather than relying on a standalone stub application.
 # ---------------------------------------------------------------------------
-
-test_app = FastAPI()
-
-test_app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-
-class GraphRequest(BaseModel):
-    prompt: str
-
-
-class ChatRequest(BaseModel):
-    message: str
-    context: str
-
-
-class CodeRequest(BaseModel):
-    prompt: str
-    language: str
-
-
-@test_app.get("/")
-def health_check():
-    return {"status": "Online", "models": ["models/gemini-2.0-flash"]}
-
-
-@test_app.post("/generate")
-def generate_graph(request: GraphRequest):
-    return {
-        "title": "Test Graph",
-        "summary": "A stub graph for testing.",
-        "explanation": "Stub explanation.",
-        "execution_trace": "Step 1 → Step 2",
-        "code_snippet": "print('hello')",
-        "code_explanation": "Prints hello",
-        "nodes": [{"id": "1", "label": "Start"}, {"id": "2", "label": "End"}],
-        "edges": [{"source": "1", "target": "2", "label": "next"}],
-    }
-
-
 @test_app.post("/chat")
 def chat_with_ai(request: ChatRequest):
     return {"reply": f"Echo: {request.message}"}
