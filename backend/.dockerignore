@@ -1,0 +1,28 @@
+# Python virtual environments
+venv/
+Lib/
+Scripts/
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Environment files with secrets
+.env
+.env.*
+!.env.example
+
+# Test files
+test_key.py
+test_server.py
+
+# Local config
+pyvenv.cfg
+.vscode/
+
+# Misc
+*.log
+*.tmp

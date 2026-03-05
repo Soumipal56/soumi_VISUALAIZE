@@ -1,0 +1,35 @@
+# Environment files with real secrets — never commit these
+backend/.env
+frontend/.env
+frontend/.env.local
+frontend/.env.production
+frontend/.env.*.local
+.env
+
+# Python
+backend/__pycache__/
+backend/*.py[cod]
+backend/venv/
+backend/Lib/
+backend/Scripts/
+backend/pyvenv.cfg
+backend/*.egg-info/
+
+# Node / Next.js
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+frontend/build/
+frontend/*.tsbuildinfo
+frontend/next-env.d.ts
+frontend/npm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/settings.json
+.idea/
+*.swp
+*.swo
