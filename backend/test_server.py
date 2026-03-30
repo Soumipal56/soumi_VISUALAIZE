@@ -17,7 +17,7 @@ from fastapi.testclient import TestClient
 
 # Import the real application so tests validate actual routes and models.
 # External calls (e.g., to Gemini) should be mocked/monkeypatched in tests.
-from backend.main import app as test_app
+from main import app as test_app
 
 # ---------------------------------------------------------------------------
 # NOTE:
