@@ -1,0 +1,73 @@
+name: PR Evaluator (CI Gatekeeper)
+
+on:
+  pull_request:
+    branches: ["master"]
+
+concurrency:
+  group: pr-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  backend-gate:
+    name: Backend (Python)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Python 3.10
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+          cache: "pip"
+          cache-dependency-path: backend/requirements.txt
+          
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install flake8 pytest pytest-asyncio httpx
+          
+      - name: Code Formatting & Linting
+        run: |
+          # Fail if there are syntax errors or undefined names
+          flake8 main.py --count --select=E9,F63,F7,F82 --show-source --statistics
+          # Enforce code quality (exit non-zero if issues found)
+          flake8 main.py --count --max-line-length=120 --statistics
+          
+      - name: Run Backend Tests
+        run: pytest test_server.py -v
+        env:
+          GEMINI_API_KEY: "test-key"
+
+  frontend-gate:
+    name: Frontend (Next.js)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Node.js 18
+        uses: actions/setup-node@v4
+        with:
+          node-version: "18"
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+          
+      - name: Install dependencies
+        run: npm ci
+        
+      - name: Lint & Type-check
+        run: |
+          npm run lint
+          npx tsc --noEmit
+          
+      - name: Production Build Check
+        run: npm run build
+        env:
+          NEXT_PUBLIC_API_URL: http://localhost:8000

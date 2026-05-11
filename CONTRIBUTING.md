@@ -128,30 +128,19 @@ docker-compose up --build
 
 ### Branching Strategy
 
-Always create a new branch from the latest `main` before making changes. **Never commit directly to `main`.**
+Always create a new branch from the latest `master` before making changes. **Direct pushes to `master` are strictly forbidden.**
+
+1. **Fork** the repository.
+2. **Clone** your fork.
+3. **Create a branch** using the following naming convention:
+   - `feat/issue-#` (for new features)
+   - `fix/issue-#` (for bug fixes)
+   - `docs/issue-#` (for documentation)
 
 ```bash
-# Sync your fork with upstream first
-git fetch upstream
-git checkout main
-git merge upstream/main
-
-# Create a descriptive branch
-git checkout -b feat/your-feature-name
-# or
-git checkout -b fix/your-bug-fix
+# Example
+git checkout -b feat/issue-42
 ```
-
-Branch naming conventions:
-
-| Prefix | Use case |
-|--------|----------|
-| `feat/` | New features |
-| `fix/` | Bug fixes |
-| `docs/` | Documentation changes |
-| `refactor/` | Code refactoring |
-| `test/` | Adding or improving tests |
-| `chore/` | Maintenance tasks |
 
 ### Commit Messages
 
