@@ -1,0 +1,80 @@
+name: GSSOC Auto-Assigner
+
+on:
+  issue_comment:
+    types: [created]
+
+permissions:
+  issues: write
+
+jobs:
+  auto-assign:
+    if: ${{ !github.event.issue.pull_request && contains(github.event.comment.body, '/assign') && github.event.issue.state == 'open' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Process Assignment
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const commentBody = context.payload.comment.body.trim().toLowerCase();
+            if (commentBody !== '/assign') {
+              return;
+            }
+
+            const issue = context.payload.issue;
+            const commenter = context.payload.comment.user.login;
+            const issueBody = issue.body ? issue.body.trim() : "";
+
+            // --- QUALITY GATE 1: Minimum Description Length ---
+            // Rejects issues that are mostly blank or just have a title
+            if (issueBody.length < 100) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issue.number,
+                body: `🛑 **Assignment Denied:** Hey @${commenter}, this issue description is too short. To maintain the quality of **VISUALAIZE**, please update the issue with a detailed description of the bug or feature, steps to reproduce, and proposed solution. Once updated, a maintainer will review it.`
+              });
+              return;
+            }
+
+            // --- QUALITY GATE 2: Maintainer Approval Label ---
+            // Highly recommended for GSSOC: Force maintainers to approve the issue first
+            const labels = issue.labels.map(l => l.name.toLowerCase());
+            
+            // Note: You must create an "approved" label in your GitHub repo for this to work!
+            if (!labels.includes('approved')) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issue.number,
+                body: `⏳ **Pending Approval:** Hey @${commenter}, thanks for volunteering! However, this issue has not been verified by a maintainer yet. We only assign issues that have the \`approved\` label. Please wait for a maintainer to review and approve this issue first.`
+              });
+              return;
+            }
+
+            // --- QUALITY GATE 3: Already Assigned ---
+            if (issue.assignees && issue.assignees.length > 0) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issue.number,
+                body: `Hey @${commenter}! This issue is already assigned to someone else. Please check out other open #GSSOC issues! 🚀`
+              });
+              return;
+            }
+
+            // --- SUCCESS: Assign the user ---
+            await github.rest.issues.addAssignees({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: issue.number,
+              assignees: [commenter]
+            });
+
+            // Post a welcome message
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: issue.number,
+              body: `🎉 Assigned to @${commenter}!\n\nWelcome to **VISUALAIZE** for GSSOC 2026! We are thrilled to have you here.\n\n📌 **Next Steps:**\n1. Please read our [CONTRIBUTING.md](https://github.com/${context.repo.owner}/${context.repo.repo}/blob/master/CONTRIBUTING.md) to set up the Next.js/FastAPI environment.\n2. Feel free to ask questions in this thread if you get stuck.\n3. When you submit your Pull Request, make sure to link this issue!\n\nHappy coding! 💻✨`
+            });
