@@ -21,17 +21,13 @@ jobs:
             const comment = context.payload.comment.body;
             const commenter = context.payload.comment.user.login;
             const issue = context.payload.issue;
-            const issueBody = issue.body ? issue.body.trim() : "";
 
             // --- STEP 1: AI INTENT DETECTION ---
-            // Uses Gemini to understand if the user actually wants to work on the issue
             console.log(`Analyzing comment from @${commenter}: "${comment}"`);
             
             const aiPrompt = `You are a GitHub bot for the 'VISUALAIZE' project. 
             Analyze this comment: "${comment}". 
             Does the user express a clear intent to be assigned to work on this issue? 
-            Examples of YES: "/assign", "I want to work on this", "Can I take this?", "Dibs", "Assign me please".
-            Examples of NO: "I have a question", "This is a great project", "I will review this later", "Fix this typo".
             Respond with ONLY 'YES' or 'NO'.`;
             
             let intent = "NO";
@@ -45,7 +41,6 @@ jobs:
               intent = data.candidates[0].content.parts[0].text.trim().toUpperCase();
               console.log(`AI Intent Detection Result: ${intent}`);
             } catch (e) {
-              console.error("AI Intent Detection failed, falling back to keyword check:", e);
               if (comment.toLowerCase().includes('assign')) intent = "YES";
             }
 
@@ -54,30 +49,7 @@ jobs:
               return;
             }
 
-            // --- STEP 2: QUALITY GATE - DESCRIPTION LENGTH ---
-            if (issueBody.length < 100) {
-              await github.rest.issues.createComment({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                issue_number: issue.number,
-                body: `🛑 **Assignment Denied:** Hey @${commenter}, this issue description is too short. To maintain project quality, please update the issue with a detailed description first.`
-              });
-              return;
-            }
-
-            // --- STEP 3: QUALITY GATE - MAINTAINER APPROVAL ---
-            const labels = issue.labels.map(l => l.name.toLowerCase());
-            if (!labels.includes('approved')) {
-              await github.rest.issues.createComment({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                issue_number: issue.number,
-                body: `⏳ **Pending Approval:** Hey @${commenter}, thanks for volunteering! We only assign issues that have the \`approved\` label. Please wait for a maintainer to review and approve this issue first.`
-              });
-              return;
-            }
-
-            // --- STEP 4: COLLISION PREVENTION ---
+            // --- STEP 2: COLLISION PREVENTION ---
             if (issue.assignees && issue.assignees.length > 0) {
               await github.rest.issues.createComment({
                 owner: context.repo.owner,
@@ -88,7 +60,7 @@ jobs:
               return;
             }
 
-            // --- STEP 5: ASSIGNMENT ---
+            // --- STEP 3: ASSIGNMENT ---
             await github.rest.issues.addAssignees({
               owner: context.repo.owner,
               repo: context.repo.repo,

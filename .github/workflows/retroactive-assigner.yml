@@ -1,13 +1,12 @@
 name: Retroactive GSSOC Assigner
 
-# This workflow can be manually triggered to process existing issues
 on:
   workflow_dispatch:
     inputs:
       dry_run:
         description: 'If true, only log what would be done without making changes'
         required: true
-        default: 'true'
+        default: 'false'
 
 permissions:
   issues: write
@@ -35,37 +34,31 @@ jobs:
               if (issue.pull_request) continue; // Skip PRs
 
               // 2. Check if already assigned
-              if (issue.assignees && issue.assignees.length > 0) continue;
+              if (issue.assignees && issue.assignees.length > 0) {
+                console.log(`Issue #${issue.number} is already assigned. Skipping.`);
+                continue;
+              }
 
-              // 3. Verify labels (gssoc and approved)
-              const labels = issue.labels.map(l => l.name.toLowerCase());
-              const isGssoc = labels.includes('gssoc') || labels.includes('gssoc2026');
-              const isApproved = labels.includes('approved');
-
-              if (!isGssoc || !isApproved) continue;
-
-              // 4. Find the first valid /assign comment
+              // 3. Fetch comments for this issue
               const comments = await github.paginate(github.rest.issues.listComments, {
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 issue_number: issue.number
               });
 
-              const assignComment = comments.find(c => c.body.trim().toLowerCase() === '/assign');
+              // 4. Find the first comment expressing intent to be assigned
+              const assignComment = comments.find(c => {
+                const body = c.body.toLowerCase();
+                return body.includes('assign') || body.includes('i want to work') || body.includes('can i take');
+              });
 
               if (assignComment) {
                 const commenter = assignComment.user.login;
-                const issueBody = issue.body ? issue.body.trim() : "";
-
-                // 5. Check quality gate (100 chars)
-                if (issueBody.length < 100) {
-                   console.log(`Issue #${issue.number} has /assign but body is too short. Skipping.`);
-                   continue;
-                }
-
-                console.log(`Matching Issue #${issue.number}: Assigning to @${commenter}`);
+                console.log(`Found intent on Issue #${issue.number} from @${commenter}: "${assignComment.body}"`);
 
                 if (!dryRun) {
+                  console.log(`Executing assignment for Issue #${issue.number} to @${commenter}`);
+                  
                   // Assign user
                   await github.rest.issues.addAssignees({
                     owner: context.repo.owner,
@@ -81,6 +74,8 @@ jobs:
                     issue_number: issue.number,
                     body: `🎉 Retroactively assigned to @${commenter}!\n\nWelcome to **VISUALAIZE**! Since you previously requested assignment, we've processed your request. Happy coding! 💻✨`
                   });
+                } else {
+                  console.log(`[DRY RUN] Would assign Issue #${issue.number} to @${commenter}`);
                 }
               }
             }
