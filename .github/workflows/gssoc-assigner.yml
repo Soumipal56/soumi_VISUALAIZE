@@ -60,7 +60,16 @@ jobs:
               return;
             }
 
-            // --- STEP 3: ASSIGNMENT ---
+            // --- STEP 3: AUTO-LABELING (Admin Mode) ---
+            console.log(`Auto-labeling Issue #${issue.number} for GSSOC 2026 tracking...`);
+            await github.rest.issues.addLabels({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: issue.number,
+              labels: ['gssoc', 'gssoc2026', 'assigned']
+            });
+
+            // --- STEP 4: ASSIGNMENT ---
             await github.rest.issues.addAssignees({
               owner: context.repo.owner,
               repo: context.repo.repo,
@@ -72,5 +81,5 @@ jobs:
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: issue.number,
-              body: `🎉 Assigned to @${commenter}!\n\nWelcome to **VISUALAIZE**! 🚀\n\n📌 **Next Steps:**\n1. Read [CONTRIBUTING.md](https://github.com/${context.repo.owner}/${context.repo.repo}/blob/master/CONTRIBUTING.md).\n2. Ask questions in this thread if you get stuck.\n3. Link this issue in your PR!\n\nHappy coding! 💻✨`
+              body: `🎉 Assigned to @${commenter}!\n\nWelcome to **VISUALAIZE**! 🚀\n\nI've automatically added the **GSSOC 2026** labels to this issue for tracking.\n\n📌 **Next Steps:**\n1. Read [CONTRIBUTING.md](https://github.com/${context.repo.owner}/${context.repo.repo}/blob/master/CONTRIBUTING.md).\n2. Ask questions in this thread if you get stuck.\n3. Link this issue in your PR!\n\nHappy coding! 💻✨`
             });

@@ -57,8 +57,16 @@ jobs:
                 console.log(`Found intent on Issue #${issue.number} from @${commenter}: "${assignComment.body}"`);
 
                 if (!dryRun) {
-                  console.log(`Executing assignment for Issue #${issue.number} to @${commenter}`);
+                  console.log(`Executing assignment & labeling for Issue #${issue.number} to @${commenter}`);
                   
+                  // Auto-label (Admin Mode)
+                  await github.rest.issues.addLabels({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    issue_number: issue.number,
+                    labels: ['gssoc', 'gssoc2026', 'assigned']
+                  });
+
                   // Assign user
                   await github.rest.issues.addAssignees({
                     owner: context.repo.owner,
@@ -72,10 +80,10 @@ jobs:
                     owner: context.repo.owner,
                     repo: context.repo.repo,
                     issue_number: issue.number,
-                    body: `🎉 Retroactively assigned to @${commenter}!\n\nWelcome to **VISUALAIZE**! Since you previously requested assignment, we've processed your request. Happy coding! 💻✨`
+                    body: `🎉 Retroactively assigned to @${commenter}!\n\nWelcome to **VISUALAIZE**! I've also tagged this issue with **GSSOC 2026** labels for your tracking. Happy coding! 💻✨`
                   });
                 } else {
-                  console.log(`[DRY RUN] Would assign Issue #${issue.number} to @${commenter}`);
+                  console.log(`[DRY RUN] Would assign and label Issue #${issue.number} to @${commenter}`);
                 }
               }
             }
