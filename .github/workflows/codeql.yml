@@ -6,7 +6,11 @@ on:
   pull_request:
     branches: [ "master" ]
   schedule:
-    - cron: '30 1 * * 0' # Runs once a week automatically
+    - cron: '30 1 * * 0'
+
+env:
+  # Force use of Node.js 24 to clear deprecation warnings
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
   analyze:
@@ -20,15 +24,12 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # Define the two languages in your monorepo
         language: [ 'javascript', 'python' ]
 
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
 
-    # --- THE FIX FOR PYTHON ---
-    # CodeQL needs the Python environment to exist to map the code graph properly
     - name: Set up Python
       if: matrix.language == 'python'
       uses: actions/setup-python@v5
@@ -41,18 +42,16 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install -r backend/requirements.txt
-    # ---------------------------
 
     - name: Initialize CodeQL
-      uses: github/codeql-action/init@v3
+      uses: github/codeql-action/init@v4
       with:
         languages: ${{ matrix.language }}
-        # We don't need a custom config; installing dependencies above usually fixes the extractor
 
     - name: Autobuild
-      uses: github/codeql-action/autobuild@v3
+      uses: github/codeql-action/autobuild@v4
 
     - name: Perform CodeQL Analysis
-      uses: github/codeql-action/analyze@v3
+      uses: github/codeql-action/analyze@v4
       with:
         category: "/language:${{matrix.language}}"
