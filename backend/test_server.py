@@ -11,9 +11,12 @@ from fastapi.testclient import TestClient
 
 # --- MOCK GEMINI BEFORE IMPORTING MAIN ---
 # main.py runs a model scan on startup, so we must mock genai immediately.
+import sys
 mock_genai = MagicMock()
-with patch.dict("sys.modules", {"google.generativeai": mock_genai}):
-    from main import app, ChatRequest, CodeRequest, GraphRequest
+sys.modules["google.generativeai"] = mock_genai
+
+import main
+from main import app, ChatRequest, CodeRequest, GraphRequest
 
 # Create the test client
 client = TestClient(app)
@@ -31,7 +34,7 @@ MOCK_GRAPH = {
 
 # --- TESTS ---
 
-@patch("main.get_smart_response")
+@patch.object(main, "get_smart_response")
 def test_health_check(mock_ai):
     """GET / should return status Online."""
     response = client.get("/")
@@ -40,7 +43,7 @@ def test_health_check(mock_ai):
     assert data["status"] == "Online"
     assert "models" in data
 
-@patch("main.get_smart_response")
+@patch.object(main, "get_smart_response")
 def test_generate_graph_returns_expected_shape(mock_ai):
     """POST /generate should return a graph with nodes and edges."""
     # Mock the AI response string (JSON format)
@@ -58,7 +61,7 @@ def test_generate_graph_missing_prompt():
     response = client.post("/generate", json={})
     assert response.status_code == 422
 
-@patch("main.get_smart_response")
+@patch.object(main, "get_smart_response")
 def test_chat_returns_reply(mock_ai):
     """POST /chat should return a reply field."""
     mock_ai.return_value = "This is a mock AI reply."
@@ -76,7 +79,7 @@ def test_chat_missing_fields():
     response = client.post("/chat", json={"message": "hi"}) # Missing context
     assert response.status_code == 422
 
-@patch("main.get_smart_response")
+@patch.object(main, "get_smart_response")
 def test_regenerate_code_returns_snippet(mock_ai):
     """POST /regenerate_code should return code_snippet and code_explanation."""
     mock_ai.return_value = "```python\nprint('hello')\n```"
