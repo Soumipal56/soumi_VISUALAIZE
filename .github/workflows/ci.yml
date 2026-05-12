@@ -36,7 +36,7 @@ jobs:
       - name: Test
         run: pytest test_server.py -v
         env:
-          GEMINI_API_KEY: "test-key"
+          GEMINI_API_KEY: "dummy_test_key_for_ci"
 
   frontend:
     name: Frontend (Next.js)
