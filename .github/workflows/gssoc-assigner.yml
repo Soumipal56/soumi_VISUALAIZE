@@ -9,7 +9,7 @@ permissions:
 
 jobs:
   auto-assign:
-    if: ${{ !github.event.issue.pull_request && contains(github.event.comment.body, 'assign') && github.event.issue.state == 'open' }}
+    if: ${{ !github.event.issue.pull_request && github.event.issue.state == 'open' }}
     runs-on: ubuntu-latest
     steps:
       - name: Process Assignment
