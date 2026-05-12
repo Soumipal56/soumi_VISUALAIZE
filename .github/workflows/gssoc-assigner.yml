@@ -9,7 +9,7 @@ permissions:
 
 jobs:
   auto-assign:
-    if: ${{ !github.event.issue.pull_request && contains(github.event.comment.body, '/assign') && github.event.issue.state == 'open' }}
+    if: ${{ !github.event.issue.pull_request && contains(github.event.comment.body, 'assign') && github.event.issue.state == 'open' }}
     runs-on: ubuntu-latest
     steps:
       - name: Process Assignment
@@ -17,7 +17,8 @@ jobs:
         with:
           script: |
             const commentBody = context.payload.comment.body.trim().toLowerCase();
-            if (commentBody !== '/assign') {
+            if (!commentBody.includes('assign')) {
+              console.log("Comment does not contain 'assign'. Ignoring.");
               return;
             }
 
