@@ -1,0 +1,34 @@
+# CodeRabbit Configuration File
+# https://coderabbit.ai/docs/configuration
+
+language: "en-US"
+early_access: false
+
+reviews:
+  profile: "chill"
+  request_changes_workflow: false # Set to true to block PRs on failed reviews
+  high_level_summary: true
+  
+  # Tell CodeRabbit the context of the VISUALAIZE repo
+  system_instructions: |
+    You are a Senior Engineer reviewing a Full-Stack application.
+    Frontend: Next.js 16, ReactFlow, Three.js, TailwindCSS.
+    Backend: FastAPI, Python 3.10+, Google Gemini 2.5 API.
+    Focus on performance, security, and React/FastAPI best practices.
+
+  auto_review:
+    enabled: true
+    drafts: false
+    ignore_title_keywords:
+      - "WIP"
+      - "Draft"
+      - "DO NOT MERGE"
+
+  path_filters:
+    - "!**/*.md"
+    - "!**/*.txt"
+    - "!**/*.json"
+    - "!package-lock.json"
+
+chat:
+  auto_reply: true
