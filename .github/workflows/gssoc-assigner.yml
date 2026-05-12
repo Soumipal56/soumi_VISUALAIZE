@@ -11,6 +11,8 @@ jobs:
   auto-assign:
     if: ${{ !github.event.issue.pull_request && github.event.issue.state == 'open' }}
     runs-on: ubuntu-latest
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
     steps:
       - name: Process Assignment
         uses: actions/github-script@v7

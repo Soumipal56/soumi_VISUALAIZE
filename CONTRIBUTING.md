@@ -88,7 +88,7 @@ cp .env.example .env
 Start the backend server:
 
 ```bash
-uvicorn server:app --reload --port 8000
+uvicorn main:app --reload --port 8000
 ```
 
 #### Frontend Setup

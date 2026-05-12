@@ -14,6 +14,8 @@ jobs:
   backend:
     name: Backend (Python)
     runs-on: ubuntu-latest
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
     defaults:
       run:
         working-directory: backend
@@ -39,6 +41,8 @@ jobs:
   frontend:
     name: Frontend (Next.js)
     runs-on: ubuntu-latest
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
     defaults:
       run:
         working-directory: frontend
@@ -60,6 +64,8 @@ jobs:
   docker:
     name: Docker Build Check
     runs-on: ubuntu-latest
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
     needs: [backend, frontend]
     steps:
       - uses: actions/checkout@v4

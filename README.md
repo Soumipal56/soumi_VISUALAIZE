@@ -139,7 +139,7 @@ VisualAIze/
 ### Prerequisites
 
 - **Node.js** 18+ and npm/yarn
-- **Python** 3.9+
+- **Python** 3.10+
 - **Google Gemini API Key** (Get one [here](https://makersuite.google.com/app/apikey))
 
 ### Installation
@@ -207,10 +207,10 @@ python -m venv venv
 source venv/bin/activate
 
 # Install dependencies
-pip install google-generativeai uvicorn fastapi
+pip install -r requirements.txt
 
-# Set your Gemini API Key
-python test_key.py  # This validates your API key
+# Create .env and add your GEMINI_API_KEY
+cp .env.example .env
 ```
 
 #### 4. **Configure API Key**
