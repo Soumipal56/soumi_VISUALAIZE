@@ -186,12 +186,27 @@ docs: update README with Docker instructions
 
 ## GSSOC Contributors
 
-This project is part of **GirlScript Summer of Code (GSSOC)**. If you are a GSSOC participant:
+This project is part of **GirlScript Summer of Code (GSSOC) 2026**. To ensure your contributions are counted correctly, please follow these guidelines:
 
-- Look for issues labeled **`gssoc`** and **`good first issue`** for beginner-friendly tasks.
-- Comment on the issue you want to work on and wait for it to be assigned to you before starting.
-- Mention **"GSSOC"** in your PR description so your contribution gets properly tracked.
-- Join the discussion in the comments if you have any questions — maintainers are here to help!
+### 🏆 Scoring System
+Points are awarded based on the complexity level of the issue. When an issue is assigned, one of the following labels will be applied:
+
+| Label | Points | Description |
+|-------|--------|-------------|
+| `level:beginner` | **20 pts** | Simple bug fixes, CSS tweaks, or docs. |
+| `level:intermediate` | **35 pts** | New features, complex components, or logic fixes. |
+| `level:advanced` | **55 pts** | Major architectural changes or deep backend work. |
+| `level:critical` | **80 pts** | High-impact security fixes or core system upgrades. |
+
+### 📝 Participation Rules
+1. **Assignment**: Comment on an issue expressing your intent. Our **AI Assigner** will automatically tag and assign you if the issue is available.
+2. **Issue Linking**: Your Pull Request **MUST** link to the assigned issue (e.g., `Closes #123`) in the description.
+3. **Approval Label**: To earn points, your PR must be tagged with the **`gssoc:approved`** label by a maintainer.
+4. **Code Quality**: High-quality code may earn you bonus labels like `quality:clean` or `quality:exceptional`!
+
+> **Note:** Spam, low-quality PRs, or AI-generated "slop" without verification will be labeled as `gssoc:spam` or `gssoc:ai-slop` and will not be counted.
+
+---
 
 > **First time contributing to open source?** Check out [this guide](https://opensource.guide/how-to-contribute/) to get started!
 

@@ -62,13 +62,31 @@ jobs:
               return;
             }
 
-            // --- STEP 3: AUTO-LABELING (Admin Mode) ---
+            // --- STEP 3: AUTO-LABELING (GSSOC 2026 Scoring) ---
             console.log(`Auto-labeling Issue #${issue.number} for GSSOC 2026 tracking...`);
+            
+            const labelsToAdd = ['gssoc', 'gssoc2026', 'assigned'];
+            const issueLabels = issue.labels.map(l => l.name.toLowerCase());
+            
+            // Map difficulty to GSSOC levels
+            if (issueLabels.includes('beginner') || issueLabels.includes('good first issue')) {
+              labelsToAdd.push('level:beginner');
+            } else if (issueLabels.includes('medium') || issueLabels.includes('intermediate')) {
+              labelsToAdd.push('level:intermediate');
+            } else if (issueLabels.includes('hard') || issueLabels.includes('advanced')) {
+              labelsToAdd.push('level:advanced');
+            } else if (issueLabels.includes('critical')) {
+              labelsToAdd.push('level:critical');
+            } else {
+              // Default to beginner if no level is specified
+              labelsToAdd.push('level:beginner');
+            }
+
             await github.rest.issues.addLabels({
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: issue.number,
-              labels: ['gssoc', 'gssoc2026', 'assigned']
+              labels: labelsToAdd
             });
 
             // --- STEP 4: ASSIGNMENT ---
@@ -79,9 +97,17 @@ jobs:
               assignees: [commenter]
             });
 
+            const levelLabel = labelsToAdd.find(l => l.startsWith('level:'));
+            const points = {
+              'level:beginner': '20 pts',
+              'level:intermediate': '35 pts',
+              'level:advanced': '55 pts',
+              'level:critical': '80 pts'
+            }[levelLabel] || '20 pts';
+
             await github.rest.issues.createComment({
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: issue.number,
-              body: `🎉 Assigned to @${commenter}!\n\nWelcome to **VISUALAIZE**! 🚀\n\nI've automatically added the **GSSOC 2026** labels to this issue for tracking.\n\n📌 **Next Steps:**\n1. Read [CONTRIBUTING.md](https://github.com/${context.repo.owner}/${context.repo.repo}/blob/master/CONTRIBUTING.md).\n2. Ask questions in this thread if you get stuck.\n3. Link this issue in your PR!\n\nHappy coding! 💻✨`
+              body: `🎉 Assigned to @${commenter}!\n\nWelcome to **VISUALAIZE**! 🚀\n\nI've automatically added the **GSSOC 2026** labels for tracking:\n- Label: \`${levelLabel}\` (Worth **${points}** upon merge!)\n\n📌 **Next Steps:**\n1. Read [CONTRIBUTING.md](https://github.com/${context.repo.owner}/${context.repo.repo}/blob/master/CONTRIBUTING.md).\n2. **Important:** Your PR must have the \`gssoc:approved\` label to earn points.\n3. Ask questions in this thread if you get stuck.\n4. Link this issue in your PR!\n\nHappy coding! 💻✨`
             });

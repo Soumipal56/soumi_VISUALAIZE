@@ -61,12 +61,27 @@ jobs:
                 if (!dryRun) {
                   console.log(`Executing assignment & labeling for Issue #${issue.number} to @${commenter}`);
                   
-                  // Auto-label (Admin Mode)
+                  // Auto-label (GSSOC 2026 Scoring)
+                  const labelsToAdd = ['gssoc', 'gssoc2026', 'assigned'];
+                  const issueLabels = issue.labels.map(l => l.name.toLowerCase());
+                  
+                  if (issueLabels.includes('beginner') || issueLabels.includes('good first issue')) {
+                    labelsToAdd.push('level:beginner');
+                  } else if (issueLabels.includes('medium') || issueLabels.includes('intermediate')) {
+                    labelsToAdd.push('level:intermediate');
+                  } else if (issueLabels.includes('hard') || issueLabels.includes('advanced')) {
+                    labelsToAdd.push('level:advanced');
+                  } else if (issueLabels.includes('critical')) {
+                    labelsToAdd.push('level:critical');
+                  } else {
+                    labelsToAdd.push('level:beginner');
+                  }
+
                   await github.rest.issues.addLabels({
                     owner: context.repo.owner,
                     repo: context.repo.repo,
                     issue_number: issue.number,
-                    labels: ['gssoc', 'gssoc2026', 'assigned']
+                    labels: labelsToAdd
                   });
 
                   // Assign user
@@ -77,12 +92,14 @@ jobs:
                     assignees: [commenter]
                   });
 
+                  const levelLabel = labelsToAdd.find(l => l.startsWith('level:'));
+
                   // Post welcome message
                   await github.rest.issues.createComment({
                     owner: context.repo.owner,
                     repo: context.repo.repo,
                     issue_number: issue.number,
-                    body: `🎉 Retroactively assigned to @${commenter}!\n\nWelcome to **VISUALAIZE**! I've also tagged this issue with **GSSOC 2026** labels for your tracking. Happy coding! 💻✨`
+                    body: `🎉 Retroactively assigned to @${commenter}!\n\nWelcome to **VISUALAIZE**! I've also tagged this issue with **GSSOC 2026** labels (\`${levelLabel}\`) for your tracking. \n\n**Note:** Your PR must have the \`gssoc:approved\` label to earn points. Happy coding! 💻✨`
                   });
                 } else {
                   console.log(`[DRY RUN] Would assign and label Issue #${issue.number} to @${commenter}`);

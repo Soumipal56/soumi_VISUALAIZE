@@ -4,7 +4,7 @@
   
   [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
   [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
-  [![Next.js](https://img.shields.io/badge/Next.js-16.x-black?logo=next.js&logoColor=white)](https://nextjs.org/)
+  [![Next.js](https://img.shields.io/badge/Next.js-16.2.6-black?logo=next.js&logoColor=white)](https://nextjs.org/)
   [![React](https://img.shields.io/badge/React-19.x-61DAFB?logo=react&logoColor=black)](https://react.dev/)
   [![Python](https://img.shields.io/badge/Python-3.10+-3776AB?logo=python&logoColor=white)](https://www.python.org/)
   [![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-4.x-06B6D4?logo=tailwindcss&logoColor=white)](https://tailwindcss.com/)
@@ -496,13 +496,22 @@ Response:
 
 ---
 
+### GSSOC 2026 Readiness 🚀
+
+This repository is fully optimized for **GSSOC 2026** with:
+- **AI-Powered Issue Assignment**: Mention "assign" to get auto-tagged and assigned.
+- **Automated PR Reviews**: CodeRabbit AI reviews every PR line-by-line.
+- **Smart Scoring**: Automatic labels for points (`level:beginner`, `level:intermediate`, etc.).
+
+---
+
 ## 🤝 Contributing
 
 Contributions are welcome and appreciated. Whether you're fixing a bug, improving the docs, or building a new feature, your help makes a difference.
 
 Please read [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines on how to set up the project locally, the branching strategy, commit message conventions, and how to submit a pull request.
 
-If you are participating in **GirlScript Summer of Code (GSSOC)**, look for issues labeled `gssoc` and `good first issue` to get started.
+If you are participating in **GirlScript Summer of Code (GSSOC)**, look for issues labeled `gssoc` and `level:beginner` to get started.
 
 ---
 
